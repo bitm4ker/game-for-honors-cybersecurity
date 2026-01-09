@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banana Clicker & Casino</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Inter:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fefce8;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+
+        .banana-font {
+            font-family: 'Luckiest Guy', cursive;
+            letter-spacing: 2px;
+        }
+
+        .banana-bounce:active { transform: scale(0.9); }
+
+        .floating-banana {
+            position: absolute;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+            z-index: 100;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(-100px) rotate(20deg); opacity: 0; }
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(234, 179, 8, 0.3);
+        }
+
+        .page { display: none; }
+        .page.active { display: flex; }
+
+        .slot-reel {
+            height: 100px;
+            overflow: hidden;
+            border: 4px solid #b45309;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            transition: all 0.1s;
+        }
+
+        .case-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .case-btn {
+            aspect-ratio: 1/1;
+            background: #ca8a04;
+            color: white;
+            font-weight: bold;
+            border-bottom: 4px solid #854d0e;
+            border-radius: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .case-btn.opened { opacity: 0.3; transform: scale(0.9); pointer-events: none; background: #eab308; }
+        .case-btn:active { transform: translateY(2px); border-bottom-width: 0; }
+
+        .card {
+            width: 50px;
+            height: 70px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4">
+
+    <!-- Navigation Bar -->
+    <nav class="w-full max-w-md flex justify-between gap-1 mb-4 z-20">
+        <button id="navGame" class="flex-1 py-2 text-[10px] font-bold rounded-xl bg-yellow-400 text-yellow-900 border-b-4 border-yellow-600 uppercase">Click</button>
+        <button id="navCasino" class="flex-1 py-2 text-[10px] font-bold rounded-xl bg-white text-gray-600 border-b-4 border-gray-200 uppercase">Casino</button>
+        <button id="navStrike" class="flex-1 py-2 text-[10px] font-bold rounded-xl bg-white text-gray-600 border-b-4 border-gray-200 uppercase">Strike</button>
+        <button id="navBoard" class="flex-1 py-2 text-[10px] font-bold rounded-xl bg-white text-gray-600 border-b-4 border-gray-200 uppercase">Board</button>
+    </nav>
+
+    <!-- Page 1: Clicker Game -->
+    <div id="gamePage" class="page active w-full max-w-md flex-col items-center gap-6">
+        <header class="text-center my-2">
+            <h1 class="text-5xl md:text-6xl banana-font text-yellow-500 drop-shadow-lg mb-1">BANANA COUNTER</h1>
+            <p class="text-yellow-700 font-medium italic text-xs">Potassium Level: <span id="potValue">0</span>%</p>
+        </header>
+
+        <div id="counterContainer" class="glass-panel rounded-3xl p-8 w-full text-center shadow-xl relative border-2 border-yellow-400">
+            <div id="counter" class="text-7xl font-black text-yellow-600 mb-2">0</div>
+            <p class="text-sm uppercase tracking-widest text-yellow-800 font-bold">Bananas in Pocket</p>
+            <button id="clicker" class="mt-8 bg-yellow-400 hover:bg-yellow-500 transition-all p-8 rounded-full shadow-2xl banana-bounce border-8 border-yellow-200 focus:outline-none">
+                <span class="text-6xl inline-block">🍌</span>
+            </button>
+        </div>
+
+        <button id="doneBtn" class="bg-yellow-800 text-white px-10 py-4 rounded-full font-bold text-lg hover:bg-yellow-900 shadow-lg w-full">
+            SUBMIT CLICKER SCORE
+        </button>
+    </div>
+
+    <!-- Page 2: Monkey Casino -->
+    <div id="casinoPage" class="page w-full max-w-md flex-col items-center gap-4">
+        <header class="text-center">
+            <h1 class="text-4xl banana-font text-yellow-600">MONKEY CASINO</h1>
+            <div class="bg-yellow-100 px-4 py-1 rounded-full text-sm font-bold text-yellow-800 inline-block mt-2">
+                Bankroll: <span id="casinoBalance">0</span> 🍌
+            </div>
+        </header>
+
+        <div class="flex w-full gap-2 mt-4 overflow-x-auto">
+            <button id="tabSlots" class="flex-none px-4 py-2 text-xs font-bold bg-yellow-400 rounded-t-xl border-b-4 border-yellow-600">SLOTS</button>
+            <button id="tabPeel" class="flex-none px-4 py-2 text-xs font-bold bg-gray-200 rounded-t-xl border-b-4 border-gray-400">PEEL</button>
+            <button id="tab21" class="flex-none px-4 py-2 text-xs font-bold bg-gray-200 rounded-t-xl border-b-4 border-gray-400">21 (BJ)</button>
+        </div>
+
+        <!-- Slots View -->
+        <div id="slotsView" class="w-full glass-panel p-6 rounded-b-3xl space-y-6">
+            <div class="grid grid-cols-3 gap-4">
+                <div id="reel1" class="slot-reel">🍌</div>
+                <div id="reel2" class="slot-reel">🍌</div>
+                <div id="reel3" class="slot-reel">🍌</div>
+            </div>
+            <button id="spinSlots" class="w-full py-4 bg-yellow-500 text-white font-black text-2xl rounded-2xl border-b-4 border-yellow-700 active:translate-y-1 active:border-b-0">SPIN (10 🍌)</button>
+        </div>
+
+        <!-- Peel View -->
+        <div id="peelView" class="hidden w-full glass-panel p-6 rounded-b-3xl space-y-4">
+            <div id="peelStatus" class="text-center font-bold text-yellow-800 bg-yellow-100 p-2 rounded-lg text-sm">Pick your lucky briefcase!</div>
+            <div id="caseContainer" class="case-grid"></div>
+            <div id="bankerOffer" class="hidden flex flex-col items-center bg-yellow-900 text-white p-4 rounded-2xl gap-2">
+                <p class="text-xs uppercase font-bold text-yellow-400">Banker's Offer</p>
+                <p class="text-2xl font-black"><span id="offerValue">0</span> 🍌</p>
+                <div class="flex gap-2 w-full mt-2">
+                    <button id="dealBtn" class="flex-1 py-2 bg-green-500 rounded-xl font-bold">DEAL</button>
+                    <button id="noDealBtn" class="flex-1 py-2 bg-red-500 rounded-xl font-bold">NO DEAL</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 21 (BJ) View -->
+        <div id="game21View" class="hidden w-full glass-panel p-6 rounded-b-3xl space-y-6">
+            <div class="flex flex-col gap-4">
+                <div>
+                    <p class="text-xs font-bold text-gray-500 uppercase mb-2">Monkey Dealer (<span id="dealerTotal">?</span>)</p>
+                    <div id="dealerHand" class="flex gap-2 min-h-[70px]"></div>
+                </div>
+                <hr class="border-yellow-200">
+                <div>
+                    <p class="text-xs font-bold text-gray-500 uppercase mb-2">Your Hand (<span id="playerTotal">0</span>)</p>
+                    <div id="playerHand" class="flex gap-2 min-h-[70px]"></div>
+                </div>
+            </div>
+            
+            <div id="bjControls" class="grid grid-cols-2 gap-2">
+                <button id="hitBtn" class="py-3 bg-yellow-500 text-white font-bold rounded-xl border-b-4 border-yellow-700">HIT</button>
+                <button id="standBtn" class="py-3 bg-yellow-700 text-white font-bold rounded-xl border-b-4 border-yellow-900">STAND</button>
+            </div>
+            <button id="start21" class="w-full py-4 bg-green-600 text-white font-black rounded-xl shadow-lg">NEW ROUND (20 🍌)</button>
+            <div id="bjStatus" class="text-center font-black text-xl text-yellow-800 hidden"></div>
+        </div>
+    </div>
+
+    <!-- Page 3: Strike Mode -->
+    <div id="strikePage" class="page w-full max-w-md flex-col items-center gap-4">
+        <header class="text-center">
+            <h1 class="text-4xl banana-font text-yellow-600">STRIKE</h1>
+        </header>
+        <div id="csCanvas" class="w-full aspect-square bg-yellow-200 rounded-3xl relative overflow-hidden border-4 border-yellow-600">
+            <div id="csSplash" class="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-center p-6 z-10">
+                <button id="startStrike" class="bg-yellow-500 text-white px-8 py-4 rounded-2xl font-black text-2xl shadow-xl">START ROUND</button>
+            </div>
+            <div class="absolute top-2 left-2 right-2 flex justify-between z-20 pointer-events-none">
+                <div class="bg-black/60 text-white px-3 py-1 rounded-lg text-xs font-bold">SCORE: <span id="csScore">0</span></div>
+                <div class="bg-black/60 text-white px-3 py-1 rounded-lg text-xs font-bold">TIME: <span id="csTimer">30</span></div>
+            </div>
+        </div>
+        <button id="doneStrikeBtn" class="w-full bg-yellow-800 text-white py-4 rounded-2xl font-bold">SUBMIT STRIKE SCORE</button>
+    </div>
+
+    <!-- Page 4: Board -->
+    <div id="leaderboardPage" class="page w-full max-w-md flex-col items-center gap-4">
+        <h1 class="text-4xl banana-font text-yellow-600 mt-4">HALL OF FAME</h1>
+        <div class="flex w-full gap-2 px-2">
+            <button id="lbTabClicker" class="flex-1 py-2 font-bold bg-yellow-400 rounded-xl border-b-4 border-yellow-600 text-xs">CLICKER</button>
+            <button id="lbTabStrike" class="flex-1 py-2 font-bold bg-gray-100 rounded-xl border-b-4 border-gray-300 text-xs">STRIKE</button>
+        </div>
+        <div id="fullLeaderboard" class="w-full space-y-2 p-2 max-h-[60vh] overflow-y-auto"></div>
+    </div>
+
+    <!-- Username Modal -->
+    <div id="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
+            <h3 class="text-2xl font-bold text-gray-800 mb-2 text-center">Submit Score</h3>
+            <p class="text-gray-600 mb-6 text-center">Enter 4 Letters (A-Z)</p>
+            <input type="text" id="usernameInput" maxlength="4" placeholder="WXYZ" class="w-full text-center text-5xl font-mono uppercase border-b-4 border-gray-200 focus:outline-none p-2 text-yellow-700 mb-6">
+            <div class="flex gap-2">
+                <button id="cancelBtn" class="flex-1 py-3 text-gray-400 font-bold">CANCEL</button>
+                <button id="submitScore" class="flex-1 py-3 bg-yellow-500 text-white font-bold rounded-xl">SUBMIT</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-10 bg-gray-900 text-white px-6 py-3 rounded-full opacity-0 transition-opacity z-[100] pointer-events-none"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'banana-v5-gambling-fixed';
+
+        // State
+        let bananas = 0;
+        let strikeScore = 0;
+        let user = null;
+        let potassium = 0;
+        let activeSubmission = { mode: 'clicker', score: 0 };
+        const slotItems = ['🍌', '🍒', '💎', '💀', '🌈', '7️⃣'];
+
+        // --- AUTH & INITIALIZATION ---
+        const initAuth = async () => {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+        };
+
+        onAuthStateChanged(auth, (u) => {
+            user = u;
+            if (user) renderBoard('clicker');
+        });
+
+        initAuth();
+
+        // --- DOM Elements ---
+        const ui = {
+            counter: document.getElementById('counter'),
+            potValue: document.getElementById('potValue'),
+            casinoBalance: document.getElementById('casinoBalance'),
+            toast: document.getElementById('toast'),
+            pages: ['game', 'casino', 'strike', 'leaderboard'],
+            nav: {
+                game: document.getElementById('navGame'),
+                casino: document.getElementById('navCasino'),
+                strike: document.getElementById('navStrike'),
+                leaderboard: document.getElementById('navBoard')
+            }
+        };
+
+        // --- UI UTILS ---
+        function showToast(m) {
+            ui.toast.innerText = m; ui.toast.style.opacity = 1;
+            setTimeout(() => ui.toast.style.opacity = 0, 2000);
+        }
+
+        function updateBalance() {
+            ui.counter.innerText = bananas;
+            ui.casinoBalance.innerText = bananas;
+        }
+
+        function setPage(id) {
+            ui.pages.forEach(p => {
+                const el = document.getElementById(`${p}Page`);
+                if(el) el.classList.remove('active');
+            });
+            const target = document.getElementById(`${id}Page`);
+            if(target) target.classList.add('active');
+            
+            Object.keys(ui.nav).forEach(k => {
+                if(ui.nav[k]) {
+                    ui.nav[k].className = (k === id) 
+                        ? "flex-1 py-2 text-[10px] font-bold rounded-xl bg-yellow-400 text-yellow-900 border-b-4 border-yellow-600 uppercase"
+                        : "flex-1 py-2 text-[10px] font-bold rounded-xl bg-white text-gray-600 border-b-4 border-gray-200 uppercase";
+                }
+            });
+            updateBalance();
+        }
+
+        Object.keys(ui.nav).forEach(id => {
+            if(ui.nav[id]) ui.nav[id].onclick = () => setPage(id);
+        });
+
+        // --- CLICKER ---
+        document.getElementById('clicker').onclick = (e) => {
+            let mult = potassium >= 100 ? 5 : 1;
+            bananas += mult;
+            potassium = Math.min(100, potassium + 1);
+            ui.potValue.innerText = Math.floor(potassium);
+            updateBalance();
+
+            const b = document.createElement('div');
+            b.className = 'floating-banana text-2xl';
+            b.innerText = mult > 1 ? '⚡' : '🍌';
+            b.style.left = `${e.clientX - 10}px`; b.style.top = `${e.clientY - 10}px`;
+            document.body.appendChild(b);
+            setTimeout(() => b.remove(), 1000);
+        };
+
+        setInterval(() => {
+            if(potassium > 0) {
+                potassium -= 0.5;
+                ui.potValue.innerText = Math.floor(potassium);
+            }
+        }, 200);
+
+        // --- CASINO: SLOTS ---
+        const reelEls = [document.getElementById('reel1'), document.getElementById('reel2'), document.getElementById('reel3')];
+        const spinBtn = document.getElementById('spinSlots');
+
+        spinBtn.onclick = () => {
+            if(bananas < 10) return showToast("Need 10 🍌!");
+            bananas -= 10;
+            updateBalance();
+            spinBtn.disabled = true;
+            
+            reelEls.forEach((reel, i) => {
+                let count = 0;
+                let interval = setInterval(() => {
+                    reel.innerText = slotItems[Math.floor(Math.random() * slotItems.length)];
+                    count++;
+                    if(count > 10 + (i * 5)) {
+                        clearInterval(interval);
+                        if(i === 2) {
+                            spinBtn.disabled = false;
+                            const res = reelEls.map(r => r.innerText);
+                            if(res[0] === res[1] && res[1] === res[2]) {
+                                let w = 100; if(res[0] === '7️⃣') w = 1000;
+                                bananas += w; showToast(`JACKPOT +${w}!`);
+                            } else if(res[0] === res[1] || res[1] === res[2] || res[0] === res[2]) {
+                                bananas += 15; showToast("+15 🍌");
+                            }
+                            updateBalance();
+                        }
+                    }
+                }, 100);
+            });
+        };
+
+        // --- CASINO: PEEL OR NO PEEL ---
+        let peelGame = { cases: [], playerCase: null, rounds: 0 };
+        const caseContainer = document.getElementById('caseContainer');
+        const peelStatus = document.getElementById('peelStatus');
+        const offerDiv = document.getElementById('bankerOffer');
+
+        function initPeel() {
+            caseContainer.innerHTML = '';
+            peelGame = { cases: [], playerCase: null, rounds: 0 };
+            offerDiv.classList.add('hidden');
+            peelStatus.innerText = "Select your main briefcase!";
+            const vals = [1, 5, 10, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 25000].sort(() => Math.random() - 0.5);
+            peelGame.cases = vals.map((v, i) => ({ id: i + 1, value: v, opened: false }));
+
+            peelGame.cases.forEach(c => {
+                const b = document.createElement('button');
+                b.className = 'case-btn';
+                b.innerText = c.id;
+                b.onclick = () => {
+                    if(!peelGame.playerCase) {
+                        peelGame.playerCase = c;
+                        b.classList.add('opened'); b.innerText = "YOU";
+                        peelStatus.innerText = "Open 2 more cases!";
+                    } else if(!c.opened && c !== peelGame.playerCase) {
+                        c.opened = true;
+                        b.classList.add('opened'); b.innerText = `🍌${c.value}`;
+                        peelGame.rounds++;
+                        if(peelGame.rounds % 2 === 0) {
+                            const rem = peelGame.cases.filter(x => !x.opened);
+                            const avg = rem.reduce((a, b) => a + b.value, 0) / rem.length;
+                            const offer = Math.floor(avg * 0.6);
+                            document.getElementById('offerValue').innerText = offer;
+                            offerDiv.classList.remove('hidden');
+                        }
+                    }
+                };
+                caseContainer.appendChild(b);
+            });
+        }
+
+        document.getElementById('dealBtn').onclick = () => {
+            const win = parseInt(document.getElementById('offerValue').innerText);
+            bananas += win; showToast(`WIN ${win}!`); initPeel(); updateBalance();
+        };
+        document.getElementById('noDealBtn').onclick = () => {
+            offerDiv.classList.add('hidden');
+            peelStatus.innerText = "Open more cases!";
+        };
+
+        // --- CASINO: 21 (BLACKJACK) ---
+        let bjGame = { player: [], dealer: [], deck: [], active: false };
+        const bjUI = {
+            playerHand: document.getElementById('playerHand'),
+            dealerHand: document.getElementById('dealerHand'),
+            playerTotal: document.getElementById('playerTotal'),
+            dealerTotal: document.getElementById('dealerTotal'),
+            status: document.getElementById('bjStatus'),
+            controls: document.getElementById('bjControls'),
+            start: document.getElementById('start21')
+        };
+
+        function getCard() {
+            const values = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+            return values[Math.floor(Math.random() * values.length)];
+        }
+
+        function getVal(hand) {
+            let total = 0;
+            let aces = 0;
+            hand.forEach(c => {
+                if(['J','Q','K'].includes(c)) total += 10;
+                else if(c === 'A') { total += 11; aces++; }
+                else total += parseInt(c);
+            });
+            while(total > 21 && aces > 0) { total -= 10; aces--; }
+            return total;
+        }
+
+        function renderBJCard(c, el) {
+            const card = document.createElement('div');
+            card.className = 'card'; card.innerText = c;
+            el.appendChild(card);
+        }
+
+        function endBJ(msg, winMult = 0) {
+            bjGame.active = false;
+            bjUI.status.innerText = msg;
+            bjUI.status.classList.remove('hidden');
+            bjUI.controls.classList.add('hidden');
+            bjUI.start.classList.remove('hidden');
+            bananas += Math.floor(20 * winMult);
+            updateBalance();
+            
+            bjUI.dealerHand.innerHTML = '';
+            bjGame.dealer.forEach(c => renderBJCard(c, bjUI.dealerHand));
+            bjUI.dealerTotal.innerText = getVal(bjGame.dealer);
+        }
+
+        document.getElementById('start21').onclick = () => {
+            if(bananas < 20) return showToast("Need 20 🍌!");
+            bananas -= 20; updateBalance();
+            bjGame = { player: [getCard(), getCard()], dealer: [getCard(), getCard()], active: true };
+            bjUI.status.classList.add('hidden');
+            bjUI.controls.classList.remove('hidden');
+            bjUI.start.classList.add('hidden');
+            
+            bjUI.playerHand.innerHTML = '';
+            bjUI.dealerHand.innerHTML = '';
+            bjGame.player.forEach(c => renderBJCard(c, bjUI.playerHand));
+            renderBJCard(bjGame.dealer[0], bjUI.dealerHand);
+            renderBJCard('?', bjUI.dealerHand);
+            
+            bjUI.playerTotal.innerText = getVal(bjGame.player);
+            bjUI.dealerTotal.innerText = "?";
+            if(getVal(bjGame.player) === 21) endBJ("BLACKJACK!", 2.5);
+        };
+
+        document.getElementById('hitBtn').onclick = () => {
+            if(!bjGame.active) return;
+            const c = getCard();
+            bjGame.player.push(c);
+            renderBJCard(c, bjUI.playerHand);
+            const val = getVal(bjGame.player);
+            bjUI.playerTotal.innerText = val;
+            if(val > 21) endBJ("BUST!", 0);
+        };
+
+        document.getElementById('standBtn').onclick = () => {
+            if(!bjGame.active) return;
+            while(getVal(bjGame.dealer) < 17) bjGame.dealer.push(getCard());
+            const dVal = getVal(bjGame.dealer);
+            const pVal = getVal(bjGame.player);
+            if(dVal > 21 || pVal > dVal) endBJ("YOU WIN!", 2);
+            else if(dVal > pVal) endBJ("DEALER WINS", 0);
+            else endBJ("PUSH", 1);
+        };
+
+        // --- CASINO TABS ---
+        const switchCasinoTab = (tab) => {
+            ['slots', 'peel', 'game21'].forEach(v => {
+                const el = document.getElementById(`${v}View`);
+                if(el) el.classList.add('hidden');
+            });
+            document.getElementById(`${tab}View`).classList.remove('hidden');
+            
+            const tabs = { slots: 'tabSlots', peel: 'tabPeel', game21: 'tab21' };
+            Object.keys(tabs).forEach(k => {
+                document.getElementById(tabs[k]).className = (k === tab) 
+                    ? "flex-none px-4 py-2 text-xs font-bold bg-yellow-400 rounded-t-xl border-b-4 border-yellow-600"
+                    : "flex-none px-4 py-2 text-xs font-bold bg-gray-200 rounded-t-xl border-b-4 border-gray-400";
+            });
+            if(tab === 'peel') initPeel();
+        };
+
+        document.getElementById('tabSlots').onclick = () => switchCasinoTab('slots');
+        document.getElementById('tabPeel').onclick = () => switchCasinoTab('peel');
+        document.getElementById('tab21').onclick = () => switchCasinoTab('game21');
+
+        // --- STRIKE MODE ---
+        let strikeRunning = false;
+        document.getElementById('startStrike').onclick = () => {
+            strikeRunning = true; strikeScore = 0;
+            document.getElementById('csSplash').classList.add('hidden');
+            let t = 30; document.getElementById('csScore').innerText = 0;
+            const timer = setInterval(() => {
+                t--; document.getElementById('csTimer').innerText = t;
+                if(t <= 0) {
+                    clearInterval(timer); strikeRunning = false;
+                    document.getElementById('csSplash').classList.remove('hidden');
+                }
+            }, 1000);
+
+            const spawn = setInterval(() => {
+                if(!strikeRunning) return clearInterval(spawn);
+                const tgt = document.createElement('div');
+                tgt.className = 'absolute text-4xl cursor-pointer select-none';
+                tgt.innerText = Math.random() > 0.1 ? '🍌' : '💣';
+                tgt.style.left = `${Math.random() * 80}%`; tgt.style.top = `${Math.random() * 80}%`;
+                tgt.onclick = () => {
+                    if(tgt.innerText === '💣') strikeScore = Math.max(0, strikeScore - 5);
+                    else strikeScore++;
+                    document.getElementById('csScore').innerText = strikeScore; tgt.remove();
+                };
+                document.getElementById('csCanvas').appendChild(tgt);
+                setTimeout(() => tgt.remove(), 1000);
+            }, 700);
+        };
+
+        // --- SUBMISSION ---
+        document.getElementById('doneBtn').onclick = () => { activeSubmission = { mode: 'clicker', score: bananas }; document.getElementById('modal').classList.remove('hidden'); };
+        document.getElementById('doneStrikeBtn').onclick = () => { activeSubmission = { mode: 'strike', score: strikeScore }; document.getElementById('modal').classList.remove('hidden'); };
+        document.getElementById('cancelBtn').onclick = () => document.getElementById('modal').classList.add('hidden');
+
+        document.getElementById('submitScore').onclick = async () => {
+            const nick = document.getElementById('usernameInput').value.toUpperCase();
+            if(nick.length !== 4 || !user) return;
+            try {
+                const path = activeSubmission.mode === 'clicker' ? 'clicker_scores' : 'strike_scores';
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', path, user.uid), {
+                    username: nick, score: activeSubmission.score, timestamp: Date.now(), userId: user.uid
+                });
+                document.getElementById('modal').classList.add('hidden');
+                if(activeSubmission.mode === 'clicker') { bananas = 0; updateBalance(); }
+                setPage('leaderboard');
+            } catch(e) { showToast("Error!"); }
+        };
+
+        function renderBoard(type) {
+            const coll = collection(db, 'artifacts', appId, 'public', 'data', type === 'clicker' ? 'clicker_scores' : 'strike_scores');
+            onSnapshot(coll, snap => {
+                const list = [];
+                snap.forEach(d => list.push(d.data()));
+                list.sort((a,b) => b.score - a.score);
+                document.getElementById('fullLeaderboard').innerHTML = list.slice(0, 10).map((s, i) => `
+                    <div class="flex justify-between items-center p-4 bg-white rounded-2xl border ${s.userId === user?.uid ? 'border-yellow-500' : 'border-gray-100'}">
+                        <span class="font-black text-yellow-600">${i+1}. ${s.username}</span>
+                        <span class="font-bold text-gray-800">${s.score} 🍌</span>
+                    </div>
+                `).join('') || '<p class="text-center text-gray-400 py-10">No scores yet.</p>';
+            }, () => {});
+        }
+
+        document.getElementById('lbTabClicker').onclick = () => { renderBoard('clicker'); document.getElementById('lbTabClicker').className="flex-1 py-2 font-bold bg-yellow-400 rounded-xl border-b-4 border-yellow-600 text-xs"; document.getElementById('lbTabStrike').className="flex-1 py-2 font-bold bg-gray-100 rounded-xl border-b-4 border-gray-300 text-xs"; };
+        document.getElementById('lbTabStrike').onclick = () => { renderBoard('strike'); document.getElementById('lbTabStrike').className="flex-1 py-2 font-bold bg-yellow-400 rounded-xl border-b-4 border-yellow-600 text-xs"; document.getElementById('lbTabClicker').className="flex-1 py-2 font-bold bg-gray-100 rounded-xl border-b-4 border-gray-300 text-xs"; };
+    </script>
+</body>
+</html>
